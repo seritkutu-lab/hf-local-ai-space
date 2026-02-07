@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Local AI Server (FastAPI + Gradio)
+  ai-server:
+    build: .
+    container_name: hf-space-local-ai
+    ports:
+      - "7860:7860"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=7860
+      - DEBUG=False
+      - NGROK_ENABLED=False
+      - LLM_BACKEND=ollama
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      - ./.env:/app/.env
+      - ./models:/app/models
+    depends_on:
+      - ollama
+    networks:
+      - local-ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Ollama Service (optional)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-server
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - local-ai-network
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+
+networks:
+  local-ai-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
+    driver: local
